@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contoso
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contoso
+  template:
+    metadata:
+      labels:
+        app: contoso
+    spec:
+      containers:
+      - name: hello-world
+        image: ms.azurecr.io/hello-world-dotnet:1.0.0
+        ports:
+        - containerPort: 5001
+          name: https
+        env:
+        - name: NAME
+          value: "Contoso"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fabrikam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fabrikam
+  template:
+    metadata:
+      labels:
+        app: fabrikam
+    spec:
+      containers:
+      - name: hello-world
+        image: ms.azurecr.io/hello-world-dotnet:1.0.0
+        ports:
+        - containerPort: 5001
+          name: https
+        env:
+        - name: NAME
+          value: "Fabrikam"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: contoso
+spec:
+  selector:
+    app: contoso
+  type: ClusterIP
+  ports:
+  - port: 443
+    targetPort: https
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrikam
+spec:
+  selector:
+    app: fabrikam
+  type: ClusterIP
+  ports:
+  - port: 443
+    targetPort: https
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - "*.ms"
+    secretName: ingress
+  rules:
+  - host: contoso.ms
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: contoso
+            port: 
+              number: 443
+  - host: fabrikam.ms
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: fabrikam
+            port: 
+              number: 443
+    
